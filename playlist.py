@@ -96,66 +96,6 @@ def get_playlist_from_google(show_number):
     return details
 
 
-def add_to_lastfm(details):
-    import pylast
-    config = get_config()
-    username = config.get('lastfm', 'username')
-    password_hash = config.get('lastfm', 'password_hash')
-    if password_hash is None:
-        password_hash = pylast.md5(config.get('lastfm', 'password'))
-    conn = pylast.LastFMNetwork(
-        api_key=config.get('lastfm', 'api_key'),
-        api_secret=config.get('lastfm', 'api_secret'),
-        username=config.get('lastfm', 'username'),
-        password_hash=password_hash,
-    )
-
-    # raise NotImplementedError('Try with 17 -- maybe an encoding error with &?')
-
-    playlist_name = _make_playlist_name(details)
-    description_elements = []
-    if details.get('title'):
-        description_elements.append(details['title'])
-    if details.get('notes'):
-        description_elements.append(details['notes'])
-    existing_playlists = conn.get_user(username).get_playlists()
-    for p in existing_playlists:
-        if p.get_title() == playlist_name:
-            print 'Already have last.fm playlist', playlist_name
-            return False
-
-    playlist = conn.create_new_playlist(
-        playlist_name,
-        ': '.join(description_elements),
-    )
-
-    for track_details in details['tracks']:
-        track_title = track_details['title']
-        if track_details.get('version'):
-            track_title = '%s (%s)' % (track_title, track_details['version'])
-        track = pylast.Track(
-            track_details['artist'],
-            track_title,
-            conn,
-        )
-        try:
-            playlist.add_track(track)
-        except pylast.WSError, e:
-            print 'Show %s (ID: %s), track %s (%s, %s): error: %s' % (
-                details['number'],
-                details['id'],
-                track_details.get('number'),
-                track_details['artist'],
-                track_title,
-                e,
-            )
-            print 'Skipping remaining tracks'
-            return False
-
-    print 'Created last.fm playlist:', playlist_name
-    return True
-
-
 _sp = None
 
 
@@ -268,21 +208,11 @@ if __name__ == '__main__':
     import time
 
     argv = sys.argv[1:]
-    opt_lastfm = None
     opt_spotify = None
-    if '-l' in argv:
-        opt_lastfm = True
-        while '-l' in argv:
-            argv.remove('-l')
     if '-s' in argv:
         opt_spotify = True
         while '-s' in argv:
             argv.remove('-s')
-    if opt_lastfm is None and opt_spotify is None:
-        opt_lastfm = True
-        opt_spotify = True
-    if opt_lastfm is None:
-        opt_lastfm = False
     if opt_spotify is None:
         opt_spotify = False
 
@@ -303,16 +233,7 @@ if __name__ == '__main__':
         details = get_playlist_from_google(n)
         if details is None:
             continue
-        if opt_lastfm:
-            if not add_to_lastfm(details):
-                print 'Stopping due to error'
-                break
         if opt_spotify:
             if not add_to_spotify(details):
                 print 'Stopping due to error'
                 break
-
-# Missing tracks:
-#   50, Just Plain Ant
-# Next (when Alex has sorted himself out):
-# python playlist.py -l 88 276
