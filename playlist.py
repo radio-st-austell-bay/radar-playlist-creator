@@ -101,6 +101,7 @@ _sp = None
 
 def add_to_spotify(details):
     global _sp
+    import os
     import spotipy
     from spotipy.oauth2 import SpotifyClientCredentials
     from spotipy.util import prompt_for_user_token
@@ -145,7 +146,7 @@ def add_to_spotify(details):
 
     import pprint
     # pprint.pprint(details)
-    def _run_serch(artist, title, album, version):
+    def _run_search(artist, title, album, version):
         qdict = {}
         if artist:
             qdict['artist'] = artist
@@ -159,8 +160,9 @@ def add_to_spotify(details):
             ' '.join('%s:"%s"' % (k, qdict[k]) for k in qdict),
             type='track',
         )
-        if result['tracks']['items']:
-            return result['tracks']['items'][0]['id']
+        for item in result['tracks']['items']:
+            # 'for' loop in case I want to filter later.
+            return item['id']
         return None
 
     def _search_for(track_details):
@@ -174,18 +176,36 @@ def add_to_spotify(details):
             (artist, title, album, None),
             (artist, title, None, None),
         ]:
-            track_id = _run_serch(*criteria)
+            track_id = _run_search(*criteria)
             if track_id is not None:
                 return track_id
         return None
 
     track_ids = []
+    didnt_add = []
+    previous_track = None
     for track_details in details['tracks']:
+        summary = '%(artist)s: %(title)s' % track_details
+        track_details['_previous'] = previous_track
         tid = _search_for(track_details)
         if tid is None:
-            print "Didn't add:", track_details
+            print "Didn't add:", summary
+            didnt_add.append(track_details)
         else:
             track_ids.append(tid)
+        previous_track = summary
+
+    if didnt_add:
+        ERROR_DIR = 'errors'
+        if not os.path.exists(ERROR_DIR):
+            os.makedirs(ERROR_DIR)
+        print os.path.abspath(ERROR_DIR)
+        with open(
+            os.path.join(ERROR_DIR, '%3.3d.txt' % (details['number'],)),
+            'w',
+        ) as f:
+            for track_details in didnt_add:
+                f.write(pprint.pformat(track_details) + '\n\n')
 
     playlist_name = _make_playlist_name(details)
     playlist_details = sp_create.user_playlist_create(
@@ -197,10 +217,11 @@ def add_to_spotify(details):
         playlist_details['id'],
         track_ids,
     )
-    # XXX need a way to modify playlist through web or app, so I can fix small
-    # errors.
+    # # XXX need a way to modify playlist through web or app, so I can fix small
+    # # errors.
     print 'Created playlist', playlist_details['id'], playlist_details['name']
-
+    print
+    return True
 
 
 if __name__ == '__main__':
