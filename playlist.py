@@ -21,9 +21,12 @@ def get_config():
     return _config
 
 
-# XXX make this configurable
+# XXX make this configurable?
 def _make_playlist_name(details):
-    return 'Radar %3.3d: %s' % (details['number'], details['date'])
+    title = 'Radar %3.3d (%s)' % (details['number'], details['date'])
+    if details['title'] is not None and details['title'].strip():
+        title = '%s: %s' % (title, details['title'])
+    return title
 
 
 def get_playlist_from_google(show_number):
