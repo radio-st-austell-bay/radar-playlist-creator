@@ -197,7 +197,7 @@ def add_to_spotify(details):
     previous_track = None
     for track_details in details['tracks']:
         summary = '%(artist)s: %(title)s' % track_details
-        track_details['_previous'] = previous_track
+        track_details['zz_previous'] = previous_track
         tid = _search_for(track_details)
         if tid is None:
             print "Didn't add:", summary
