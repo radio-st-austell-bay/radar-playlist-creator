@@ -170,12 +170,23 @@ def add_to_spotify(details):
         title = track_details['title']
         album = track_details['album']
         version = track_details['version']
-        for criteria in [
+        criteria_tuples = [
             (artist, title, album, version),
             (artist, title, None, version),
             (artist, title, album, None),
             (artist, title, None, None),
-        ]:
+        ]
+        if title.startswith('The '):
+            for tpl in criteria_tuples[:]:
+                criteria_tuples.append(
+                    (
+                        tpl[0],
+                        title[4:],
+                        tpl[2],
+                        tpl[3],
+                    )
+                )
+        for criteria in criteria_tuples:
             track_id = _run_search(*criteria)
             if track_id is not None:
                 return track_id
