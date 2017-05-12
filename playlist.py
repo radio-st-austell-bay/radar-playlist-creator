@@ -234,7 +234,11 @@ def add_to_spotify(details):
     playlist_details = sp_create.user_playlist_create(
         user_id,
         _make_playlist_name(details),
-        description=details['notes'] if details['notes'].strip() else None,
+        description=(
+            details['notes']
+            if details['notes'] is not None and details['notes'].strip()
+            else None
+        ),
     )
     sp_create.user_playlist_add_tracks(
         user_id,
