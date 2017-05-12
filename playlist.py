@@ -4,6 +4,8 @@
 # spotipy
 # requests
 
+import spotipy
+
 _config = None
 def get_config():
     import ConfigParser
@@ -98,6 +100,16 @@ def get_playlist_from_google(show_number):
 
 _sp = None
 
+class MySpotifyClass(spotipy.Spotify):
+    def user_playlist_create(self, user, name, public=True, description=None):
+        data = {
+            'name': name,
+            'public': public,
+        }
+        if description is not None:
+            data['description'] = description
+        return self._post("users/%s/playlists" % (user,), payload=data)
+
 
 def add_to_spotify(details):
     global _sp
@@ -122,7 +134,7 @@ def add_to_spotify(details):
         )
         if not token:
             raise RuntimeError("no auth")
-        _sp = spotipy.Spotify(auth=token)
+        _sp = MySpotifyClass(auth=token)
     sp_create = _sp
     sp_search = spotipy.Spotify(
         client_credentials_manager=SpotifyClientCredentials(
@@ -222,6 +234,7 @@ def add_to_spotify(details):
     playlist_details = sp_create.user_playlist_create(
         user_id,
         _make_playlist_name(details),
+        description=details['notes'] if details['notes'].strip() else None,
     )
     sp_create.user_playlist_add_tracks(
         user_id,
